@@ -45,7 +45,7 @@ if (-not $DryRun) {
     }
     if ($doNvim) {
         winget install --id Neovim.Neovim --silent `
-            --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
+            --accept-source-agreements --accept-package-agreements
         & "$DotfilesPath\install\symlink-windows.ps1" `
             -Modules @('nvim') -DotfilesPath $DotfilesPath
     }

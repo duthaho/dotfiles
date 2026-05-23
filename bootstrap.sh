@@ -83,10 +83,21 @@ if [[ -z "$DRY_RUN" ]]; then
     case "$OS" in
       macos)       brew install neovim ripgrep fd ;;
       linux|wsl)
+        # Install search deps via system package manager (apt's versions are fine).
         if command -v apt-get >/dev/null 2>&1; then
-          sudo apt-get install -y neovim ripgrep fd-find
+          sudo apt-get install -y ripgrep fd-find
         elif command -v dnf >/dev/null 2>&1; then
-          sudo dnf install -y neovim ripgrep fd-find
+          sudo dnf install -y ripgrep fd-find
+        fi
+        # Install nvim from the official prebuilt tarball. Ubuntu/Debian apt
+        # ships 0.9.x, which nvim-lspconfig has deprecated (needs 0.11+).
+        NVIM_PREFIX="$HOME/.local/share/nvim-stable"
+        if [[ ! -x "$NVIM_PREFIX/bin/nvim" ]]; then
+          echo "==> Installing Neovim stable from official tarball"
+          mkdir -p "$NVIM_PREFIX" "$HOME/.local/bin"
+          curl -fsSL https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz \
+            | tar -xz -C "$NVIM_PREFIX" --strip-components=1
+          ln -sf "$NVIM_PREFIX/bin/nvim" "$HOME/.local/bin/nvim"
         fi
         ;;
     esac

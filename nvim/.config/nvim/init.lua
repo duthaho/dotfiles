@@ -46,13 +46,12 @@ require("lazy").setup({
       require("mason").setup()
       require("mason-lspconfig").setup({
         ensure_installed = { "pyright", "ts_ls", "rust_analyzer", "lua_ls" },
-        automatic_installation = true,
+        automatic_enable  = true,   -- mason-lspconfig v2 calls vim.lsp.enable() for us
       })
-      local lsp = require("lspconfig")
-      lsp.pyright.setup({})
-      lsp.ts_ls.setup({})
-      lsp.rust_analyzer.setup({})
-      lsp.lua_ls.setup({
+
+      -- nvim 0.11+ native LSP API. mason-lspconfig auto-enables installed
+      -- servers; we only declare overrides here.
+      vim.lsp.config("lua_ls", {
         settings = { Lua = { diagnostics = { globals = { "vim" } } } },
       })
 

@@ -66,6 +66,19 @@ After install, `.bak` files sit next to the new symlinks. Inspect them with `git
 
 **One caveat for `.gitconfig` specifically:** the tracked `.gitconfig` includes `~/.gitconfig.local` for identity, so after the symlink is created your identity continues to resolve through the sidecar (which the bootstrap's seed-identity step populates before symlinking). The pre-install `~/.gitconfig` likely has a duplicate `[user]` block — that's fine, it's preserved in `.gitconfig.bak` and the new sidecar is the source of truth going forward.
 
+## Upgrading Neovim (Linux/WSL)
+
+The bootstrap installs Neovim to `~/.local/share/nvim-stable/` and symlinks `~/.local/bin/nvim` (which is on `$PATH` via `zsh/.zshenv`). It does this instead of `apt install neovim` because Debian/Ubuntu's apt package is too old for current `nvim-lspconfig` (needs 0.11+).
+
+To upgrade to the latest stable:
+
+```bash
+rm -rf ~/.local/share/nvim-stable
+./bootstrap.sh --with-nvim
+```
+
+On macOS the upgrade path is `brew upgrade neovim`. On Windows it's `winget upgrade Neovim.Neovim`.
+
 ## Removing Oh My Zsh
 
 If you prefer plain zsh or a leaner manager:
