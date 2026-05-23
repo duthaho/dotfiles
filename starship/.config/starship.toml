@@ -1,0 +1,47 @@
+# Starship prompt. Conditional segments only render when relevant.
+
+format = """
+$directory\
+$git_branch\
+$git_status\
+$python\
+$nodejs\
+$rust\
+$cmd_duration\
+$line_break\
+$character"""
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol   = "[❯](bold red)"
+
+[directory]
+style                     = "bold cyan"
+truncation_length         = 3
+fish_style_pwd_dir_length = 2
+
+[git_branch]
+symbol = " "
+style  = "bold purple"
+format = "on [$symbol$branch]($style) "
+
+[git_status]
+style  = "bold red"
+format = "([$all_status$ahead_behind]($style) )"
+
+[python]
+symbol        = "🐍 "
+style         = "bold yellow"
+detect_files  = [".python-version", "pyproject.toml", "requirements.txt"]
+
+[nodejs]
+symbol = " "
+style  = "bold green"
+
+[rust]
+symbol = "🦀 "
+style  = "bold red"
+
+[cmd_duration]
+min_time = 2000
+format   = "took [$duration](bold yellow) "

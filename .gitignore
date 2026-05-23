@@ -1,0 +1,18 @@
+# Identity / machine-local sidecars never touch the repo
+*.local
+*.local.*
+.env.local
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor noise
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Stow's adoption backup files
+*.stow-local-ignore

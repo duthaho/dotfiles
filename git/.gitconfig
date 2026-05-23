@@ -1,0 +1,24 @@
+# Identity lives in ~/.gitconfig.local (gitignored).
+[include]
+    path = ~/.gitconfig.local
+
+[push]
+    autoSetupRemote = true
+[pull]
+    rebase = true
+[init]
+    defaultBranch = main
+[core]
+    excludesfile = ~/.gitignore_global
+    autocrlf = input
+[fetch]
+    prune = true
+[diff]
+    colorMoved = default
+[alias]
+    amend = commit --amend --no-edit
+    fixup = commit --fixup HEAD
+    s     = status -sb
+    l     = log --oneline --graph --decorate -20
+    co    = checkout
+    br    = branch
