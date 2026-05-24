@@ -22,3 +22,8 @@ fi
 # Machine-local sidecars (never tracked)
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 [[ -f "$HOME/.env.local"   ]] && { set -a; source "$HOME/.env.local"; set +a; }
+
+# Add npm global bin to PATH if it exists
+if [[ -d "$HOME/.npm-global/bin" ]]; then
+  export PATH="$HOME/.npm-global/bin:$PATH"
+fi

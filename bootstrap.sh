@@ -97,9 +97,16 @@ if [[ -z "$DRY_RUN" ]]; then
         # ships 0.9.x, which nvim-lspconfig has deprecated (needs 0.11+).
         NVIM_PREFIX="$HOME/.local/share/nvim-stable"
         if [[ ! -x "$NVIM_PREFIX/bin/nvim" ]]; then
-          echo "==> Installing Neovim stable from official tarball"
+          # Pick the tarball that matches our CPU. nvim ships separate builds
+          # for x86_64 and arm64 (the latter added in v0.11).
+          case "$(uname -m)" in
+            x86_64|amd64) NVIM_TARBALL="nvim-linux-x86_64.tar.gz" ;;
+            aarch64|arm64) NVIM_TARBALL="nvim-linux-arm64.tar.gz" ;;
+            *) echo "ERROR: unsupported CPU $(uname -m) for prebuilt nvim" >&2; exit 1 ;;
+          esac
+          echo "==> Installing Neovim stable ($NVIM_TARBALL) from official tarball"
           mkdir -p "$NVIM_PREFIX" "$HOME/.local/bin"
-          curl -fsSL https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz \
+          curl -fsSL "https://github.com/neovim/neovim/releases/download/stable/$NVIM_TARBALL" \
             | tar -xz -C "$NVIM_PREFIX" --strip-components=1
           ln -sf "$NVIM_PREFIX/bin/nvim" "$HOME/.local/bin/nvim"
         fi
