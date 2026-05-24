@@ -117,3 +117,10 @@ fi
 echo ""
 echo "==> Bootstrap complete. Open a new terminal."
 echo "==> Verify with: $DOTFILES/doctor.sh"
+
+# Nudge user to authenticate with GitHub if gh is installed but not signed in.
+if [[ -z "$DRY_RUN" ]] && command -v gh >/dev/null 2>&1; then
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "==> Next: run 'gh auth login' to set up GitHub SSH + credential helper"
+  fi
+fi

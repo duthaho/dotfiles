@@ -65,3 +65,11 @@ if (-not $DryRun) {
 Write-Host ""
 Write-Host "==> Bootstrap complete. Open a new PowerShell 7 window."
 Write-Host "==> Verify with: $DotfilesPath\doctor.ps1"
+
+# Nudge user to authenticate with GitHub if gh is installed but not signed in.
+if (-not $DryRun -and (Get-Command gh -ErrorAction SilentlyContinue)) {
+    & gh auth status 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "==> Next: run 'gh auth login' to set up GitHub SSH + credential helper"
+    }
+}

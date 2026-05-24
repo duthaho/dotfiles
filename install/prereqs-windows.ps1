@@ -28,6 +28,7 @@ $Packages = @(
     'sharkdp.fd',
     'eza-community.eza',
     'jesseduffield.lazygit',
+    'GitHub.cli',
     'Microsoft.WindowsTerminal'
 )
 

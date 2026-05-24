@@ -15,6 +15,7 @@ PACKAGES=(
   tmux
   starship
   git
+  gh
   curl
   fzf
   ripgrep

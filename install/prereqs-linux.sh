@@ -19,10 +19,24 @@ if command -v apt-get >/dev/null 2>&1; then
     echo "==> NOTE: eza unavailable via apt on this distro; falling back to 'exa' if present"
     sudo apt-get install -y exa 2>/dev/null || true
   fi
+  # gh (GitHub CLI) — in Ubuntu universe since 22.04, Debian 12 main.
+  if ! command -v gh >/dev/null 2>&1; then
+    if ! sudo apt-get install -y gh 2>/dev/null; then
+      echo "==> apt 'gh' unavailable; installing from official GitHub apt repo"
+      sudo install -dm 755 /etc/apt/keyrings
+      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
+      sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+      sudo apt-get update -y
+      sudo apt-get install -y gh
+    fi
+  fi
 elif command -v dnf >/dev/null 2>&1; then
   echo "==> Installing toolchain via dnf"
   sudo dnf install -y \
-    stow zsh tmux git curl fzf ripgrep starship eza
+    stow zsh tmux git curl fzf ripgrep starship eza gh
 else
   echo "ERROR: no supported package manager found (need apt-get or dnf)" >&2
   exit 1
