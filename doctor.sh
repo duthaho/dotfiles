@@ -23,11 +23,17 @@ check_bin() {
 check_symlink() {
   local link="$1" expected_prefix="$2"
   if [[ -L "$link" ]]; then
-    local target; target=$(readlink "$link")
-    if [[ "$target" == *"$expected_prefix"* ]]; then
-      ok "$link → $target"
+    # readlink (no flag) returns the raw target (often relative on stow links).
+    # readlink -f resolves through the chain to an absolute path — that's what
+    # we compare against $expected_prefix. Display the raw target since it's
+    # more readable.
+    local raw_target abs_target
+    raw_target=$(readlink "$link")
+    abs_target=$(readlink -f "$link" 2>/dev/null || echo "$raw_target")
+    if [[ "$abs_target" == "$expected_prefix"* ]]; then
+      ok "$link → $raw_target"
     else
-      fail "$link is a symlink but points to $target (expected something under $expected_prefix)"
+      fail "$link → $raw_target resolves to $abs_target (expected under $expected_prefix)"
     fi
   elif [[ -e "$link" ]]; then
     fail "$link exists but is not a symlink"
@@ -79,8 +85,12 @@ echo ""
 echo "== Optional =="
 if command -v nvim >/dev/null 2>&1; then
   ok "nvim installed"
-  if [[ -L "$HOME/.config/nvim/init.lua" ]]; then
-    ok "nvim config symlinked"
+  # init.lua may be a direct symlink, OR reachable via a parent-dir symlink
+  # (stow chooses one based on whether ~/.config/nvim already existed).
+  # readlink -f handles both cases by resolving the full chain.
+  init_resolved=$(readlink -f "$HOME/.config/nvim/init.lua" 2>/dev/null || true)
+  if [[ "$init_resolved" == "$DOTFILES"* ]]; then
+    ok "nvim config symlinked → $init_resolved"
   else
     info "nvim installed but config not stowed (run: install/stow-modules.sh nvim)"
   fi
