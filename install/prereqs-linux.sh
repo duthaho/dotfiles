@@ -9,10 +9,13 @@ if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update -y
   sudo apt-get install -y \
     stow zsh tmux git curl fzf ripgrep
-  # Starship installs separately on Debian-based systems
+  # Starship installs separately on Debian-based systems.
+  # Install to ~/.local/bin (no sudo needed; already on PATH via zsh/.zshenv).
   if ! command -v starship >/dev/null 2>&1; then
-    echo "==> Installing Starship"
-    curl -sS https://starship.rs/install.sh | sh -s -- --yes
+    echo "==> Installing Starship to ~/.local/bin"
+    mkdir -p "$HOME/.local/bin"
+    curl -sS https://starship.rs/install.sh \
+      | sh -s -- --yes --bin-dir "$HOME/.local/bin"
   fi
   # eza isn't in older apt repos
   if ! command -v eza >/dev/null 2>&1; then

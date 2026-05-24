@@ -34,6 +34,10 @@ EOF
   esac
 done
 
+# 0. Ensure helper scripts are executable. The +x bit doesn't always survive
+# transfers from Windows filesystems (git on Windows, scp/rsync, zip archives).
+chmod +x "$DOTFILES/doctor.sh" "$DOTFILES/install/"*.sh 2>/dev/null || true
+
 # 1. Detect OS
 OS=$("$DOTFILES/install/detect-os.sh")
 echo "==> Detected: $OS"
