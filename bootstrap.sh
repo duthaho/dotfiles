@@ -114,7 +114,18 @@ if [[ -z "$DRY_RUN" && "$SHELL" != *zsh ]]; then
   ZSH_PATH="$(command -v zsh)"
   if [[ -n "$ZSH_PATH" ]]; then
     echo "==> Setting default shell to $ZSH_PATH"
-    chsh -s "$ZSH_PATH" || echo "WARN: chsh failed; change shell manually"
+    # Try sudo first (handles VPS / cloud users who have no Unix password but
+    # have sudo). Fall back to plain chsh (handles macOS / local users where
+    # PAM will accept their password). 'sudo -n' = non-interactive: skips the
+    # sudo branch silently if it would prompt for a password.
+    if sudo -n chsh -s "$ZSH_PATH" "$USER" 2>/dev/null; then
+      :
+    elif chsh -s "$ZSH_PATH"; then
+      :
+    else
+      echo "WARN: chsh failed; change shell manually:"
+      echo "      sudo chsh -s $ZSH_PATH $USER"
+    fi
   fi
 fi
 
