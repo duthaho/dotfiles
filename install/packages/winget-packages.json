@@ -1,0 +1,19 @@
+{
+  "packages": [
+    "Git.Git",
+    "Microsoft.PowerShell",
+    "Starship.Starship",
+    "JanDeDobbeleer.OhMyPosh",
+    "junegunn.fzf",
+    "BurntSushi.ripgrep.MSVC",
+    "sharkdp.fd",
+    "eza-community.eza",
+    "jesseduffield.lazygit",
+    "GitHub.cli",
+    "Microsoft.WindowsTerminal",
+    "ajeetdsouza.zoxide",
+    "ellie.atuin",
+    "sharkdp.bat",
+    "dandavison.delta"
+  ]
+}

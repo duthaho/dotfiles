@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# bootstrap.sh — entry point for macOS / Linux / WSL.
-# Five steps: detect → prereqs → identity → stow → optional nvim + chsh.
-
 set -euo pipefail
 
 DOTFILES="${DOTFILES:-$(cd "$(dirname "$0")" && pwd)}"
@@ -9,21 +6,29 @@ export DOTFILES
 
 DRY_RUN=""
 INSTALL_NVIM="${INSTALL_NVIM:-}"
+NON_INTERACTIVE=""
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN="--dry-run" ;;
     --with-nvim) INSTALL_NVIM=1 ;;
+    --non-interactive) NON_INTERACTIVE=1 ;;
     -h|--help)
       cat <<EOF
-Usage: $0 [--dry-run] [--with-nvim]
+Usage: $0 [--dry-run] [--with-nvim] [--non-interactive]
 
-  --dry-run     Print actions without performing them
-  --with-nvim   Skip the prompt; install Neovim module
+  --dry-run          Print actions without performing them
+  --with-nvim        Skip the prompt; install Neovim module
+  --non-interactive  Run unattended (CI / scripted installs):
+                       - Skip the nvim prompt (treats as no, unless --with-nvim set)
+                       - Skip the chsh step
+                       - Read git identity from \$GIT_USER_NAME / \$GIT_USER_EMAIL
 
 Environment:
-  DOTFILES      Path to repo (defaults to dirname of this script)
-  INSTALL_NVIM  Set to 1 to skip the nvim prompt
+  DOTFILES        Path to repo (defaults to dirname of this script)
+  INSTALL_NVIM    Set to 1 to skip the nvim prompt
+  GIT_USER_NAME   Required when --non-interactive (seed-identity.sh uses it)
+  GIT_USER_EMAIL  Required when --non-interactive
 EOF
       exit 0
       ;;
@@ -33,6 +38,8 @@ EOF
       ;;
   esac
 done
+
+export NON_INTERACTIVE
 
 # 0. Ensure helper scripts are executable. The +x bit doesn't always survive
 # transfers from Windows filesystems (git on Windows, scp/rsync, zip archives).
@@ -82,17 +89,11 @@ fi
 # 6. Optional: nvim module
 if [[ -z "$DRY_RUN" ]]; then
   if [[ "$INSTALL_NVIM" == "1" ]] || \
-     "$DOTFILES/install/prompt-yn.sh" "Install Neovim config?"; then
-    echo "==> Installing Neovim and its prereqs"
+     { [[ -z "$NON_INTERACTIVE" ]] && "$DOTFILES/install/prompt-yn.sh" "Install Neovim config?"; }; then
+    echo "==> Installing Neovim"
     case "$OS" in
-      macos)       brew install neovim ripgrep fd ;;
+      macos)       brew install neovim ;;
       linux|wsl)
-        # Install search deps via system package manager (apt's versions are fine).
-        if command -v apt-get >/dev/null 2>&1; then
-          sudo apt-get install -y ripgrep fd-find
-        elif command -v dnf >/dev/null 2>&1; then
-          sudo dnf install -y ripgrep fd-find
-        fi
         # Install nvim from the official prebuilt tarball. Ubuntu/Debian apt
         # ships 0.9.x, which nvim-lspconfig has deprecated (needs 0.11+).
         NVIM_PREFIX="$HOME/.local/share/nvim-stable"
@@ -117,7 +118,7 @@ if [[ -z "$DRY_RUN" ]]; then
 fi
 
 # 7. Switch default shell to zsh (only if not already)
-if [[ -z "$DRY_RUN" && "$SHELL" != *zsh ]]; then
+if [[ -z "$DRY_RUN" && -z "$NON_INTERACTIVE" && "$SHELL" != *zsh ]]; then
   ZSH_PATH="$(command -v zsh)"
   if [[ -n "$ZSH_PATH" ]]; then
     echo "==> Setting default shell to $ZSH_PATH"

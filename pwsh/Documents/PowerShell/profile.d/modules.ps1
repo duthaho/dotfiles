@@ -1,5 +1,5 @@
 # PSReadLine — predictive intellisense, arrow-key history search.
-if (Get-Module -ListAvailable -Name PSReadLine) {
+if ((Get-Module -ListAvailable -Name PSReadLine) -and -not [Console]::IsOutputRedirected) {
     Import-Module PSReadLine
     Set-PSReadLineOption -PredictionSource History
     Set-PSReadLineOption -PredictionViewStyle ListView

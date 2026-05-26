@@ -1,17 +1,19 @@
 #Requires -Version 7.0
-<#
-.SYNOPSIS
-    Bootstrap a Windows machine: install toolchain, seed identity,
-    symlink Windows modules. Mirrors bootstrap.sh.
-#>
 [CmdletBinding()]
 param(
     [switch]$DryRun,
     [switch]$InstallNvim,
+    [switch]$NonInteractive,
     [string]$DotfilesPath
 )
 
 $ErrorActionPreference = 'Stop'
+# See install/prereqs-windows.ps1 for rationale.
+$PSNativeCommandUseErrorActionPreference = $false
+
+if ($NonInteractive) {
+    $env:NON_INTERACTIVE = '1'
+}
 
 if (-not $DotfilesPath) {
     $DotfilesPath = $PSScriptRoot
@@ -39,7 +41,7 @@ $WinDefaults = @('git','pwsh','wt')
 # 4. Optional: nvim
 if (-not $DryRun) {
     $doNvim = $InstallNvim
-    if (-not $doNvim) {
+    if (-not $doNvim -and -not $NonInteractive) {
         $resp = Read-Host 'Install Neovim config? [y/N]'
         $doNvim = ($resp -eq 'y' -or $resp -eq 'Y')
     }
@@ -68,8 +70,10 @@ Write-Host "==> Verify with: $DotfilesPath\doctor.ps1"
 
 # Nudge user to authenticate with GitHub if gh is installed but not signed in.
 if (-not $DryRun -and (Get-Command gh -ErrorAction SilentlyContinue)) {
-    & gh auth status 2>&1 | Out-Null
+    & gh auth status *>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "==> Next: run 'gh auth login' to set up GitHub SSH + credential helper"
     }
 }
+
+exit 0

@@ -1,12 +1,11 @@
 #Requires -Version 7.0
-<#
-.SYNOPSIS
-    Install the Windows-native v1 toolchain via winget.
-#>
 [CmdletBinding()]
 param([switch]$DryRun)
 
 $ErrorActionPreference = 'Stop'
+# winget exits non-zero on "already installed"; manual $LASTEXITCODE check
+# below depends on PS not aborting first.
+$PSNativeCommandUseErrorActionPreference = $false
 
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Error @'
@@ -17,41 +16,33 @@ Or via the Microsoft Store: "App Installer".
     exit 1
 }
 
-# Package list — winget IDs, not display names.
-$Packages = @(
-    'Git.Git',
-    'Microsoft.PowerShell',          # PowerShell 7 (separate from Windows PS 5.1)
-    'Starship.Starship',
-    'JanDeDobbeleer.OhMyPosh',
-    'junegunn.fzf',
-    'BurntSushi.ripgrep.MSVC',
-    'sharkdp.fd',
-    'eza-community.eza',
-    'jesseduffield.lazygit',
-    'GitHub.cli',
-    'Microsoft.WindowsTerminal'
-)
+$DotfilesRoot = Split-Path -Parent $PSScriptRoot
+$ManifestPath = Join-Path $DotfilesRoot 'install\packages\winget-packages.json'
+
+if (-not (Test-Path $ManifestPath)) {
+    Write-Error "winget manifest not found: $ManifestPath"
+    exit 1
+}
+
+$Manifest = Get-Content -Raw $ManifestPath | ConvertFrom-Json
+$Packages = $Manifest.packages
 
 foreach ($pkg in $Packages) {
+    if ($pkg -eq 'Microsoft.PowerShell') {
+        Write-Host "==> Skipping $pkg (already running this shell)"
+        continue
+    }
     Write-Host "==> winget install $pkg"
     if ($DryRun) { continue }
-    # winget returns non-zero if already installed; that's fine.
     winget install --id $pkg --silent `
-        --accept-source-agreements --accept-package-agreements 2>&1 |
-        Tee-Object -Variable wingetOut | Out-Null
-    if ($LASTEXITCODE -ne 0 -and ($wingetOut -notmatch 'already installed')) {
+        --accept-source-agreements --accept-package-agreements
+    if ($LASTEXITCODE -ne 0) {
         Write-Warning "  winget exited $LASTEXITCODE for $pkg (continuing)"
     }
 }
 
-# Nerd Font for Windows Terminal. Installed via oh-my-posh's built-in font
-# installer, which pulls from the official Nerd Fonts releases. The installer
-# registers six family names (NF / NFM / NFP variants, with and without
-# ligature-free NL versions). wt/settings.json references 'JetBrainsMono NFM'
-# (Nerd Font Mono — strictly monospaced, best for terminal icon alignment).
-if (-not $DryRun) {
-    # Check both user and system scope. oh-my-posh registers names like
-    # 'JetBrainsMono NFM Regular (TrueType)', so match the 'NF' shorthand.
+# Nerd Font: skipped in non-interactive (no font picker UI on headless runners).
+if (-not $DryRun -and -not $env:NON_INTERACTIVE) {
     $alreadyInstalled = $false
     foreach ($scope in 'HKCU:', 'HKLM:') {
         try {
@@ -70,8 +61,7 @@ if (-not $DryRun) {
         Write-Host '==> JetBrainsMono Nerd Font already installed, skipping'
     } elseif (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
         Write-Host '==> Installing JetBrainsMono Nerd Font via oh-my-posh'
-        # No --user flag: caused silent failures on some oh-my-posh versions.
-        # Output is intentionally visible so any failure (network, picker) is diagnosable.
+        # --user caused silent failures on some oh-my-posh versions; leave it off.
         oh-my-posh font install JetBrainsMono
         if ($LASTEXITCODE -ne 0) {
             Write-Warning '  Font install exited non-zero. Try manually: oh-my-posh font install JetBrainsMono'

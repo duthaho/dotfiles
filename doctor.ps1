@@ -1,8 +1,4 @@
 #Requires -Version 7.0
-<#
-.SYNOPSIS
-    Post-install verification for the Windows-native dotfiles install.
-#>
 [CmdletBinding()]
 param([string]$DotfilesPath)
 
@@ -17,6 +13,12 @@ function Check-Bin {
     param($Name)
     $cmd = Get-Command $Name -ErrorAction SilentlyContinue
     if ($cmd) { Ok "$Name on PATH ($($cmd.Source))" } else { Fail "$Name NOT on PATH" }
+}
+
+function Check-Bin-Info {
+    param($Name)
+    $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($cmd) { Ok "$Name on PATH ($($cmd.Source))" } else { Info "$Name not installed (optional)" }
 }
 
 function Check-Symlink {
@@ -42,10 +44,12 @@ Write-Host "== Identity =="
 $gcl = Join-Path $HOME '.gitconfig.local'
 if (Test-Path $gcl) {
     Ok '~\.gitconfig.local exists'
-    $n = git config --get user.name 2>$null
-    $e = git config --get user.email 2>$null
+    # Read via --file: CI sets GIT_CONFIG_GLOBAL to a temp file, breaking the
+    # ~/.gitconfig [include] chain. Sidecar is the contract per README.
+    $n = git config --file $gcl --get user.name 2>$null
+    $e = git config --file $gcl --get user.email 2>$null
     if ($n -and $e) { Ok "git identity resolves: $n <$e>" }
-    else { Fail 'git user.name/user.email do not resolve' }
+    else { Fail 'git user.name/user.email do not resolve in ~\.gitconfig.local' }
 } else {
     Fail '~\.gitconfig.local missing'
 }
@@ -59,6 +63,14 @@ $gitConfig = Join-Path $HOME '.gitconfig'
 Check-Symlink $psProfile  $DotfilesPath
 Check-Symlink $wtSettings $DotfilesPath
 Check-Symlink $gitConfig  $DotfilesPath
+
+Write-Host ""
+Write-Host "== CLI cluster (optional) =="
+Check-Bin-Info zoxide
+Check-Bin-Info atuin
+Check-Bin-Info bat
+Check-Bin-Info fd
+Check-Bin-Info delta
 
 Write-Host ""
 Write-Host "== Optional =="

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# doctor.sh — post-install verification. Prints a checklist with
-# pass/fail/info rows. Exits 0 if all required rows pass.
-
-set -uo pipefail   # no -e: we want to keep checking even after a failure
+# no -e: keep checking after a failure.
+set -uo pipefail
 
 DOTFILES="${DOTFILES:-$(cd "$(dirname "$0")" && pwd)}"
 PASS=0
@@ -17,6 +15,14 @@ check_bin() {
     ok "$1 on PATH ($(command -v "$1"))"
   else
     fail "$1 NOT on PATH"
+  fi
+}
+
+check_bin_info() {
+  if command -v "$1" >/dev/null 2>&1; then
+    ok "$1 on PATH ($(command -v "$1"))"
+  else
+    info "$1 not installed (optional)"
   fi
 }
 
@@ -53,6 +59,9 @@ echo ""
 echo "== Default shell =="
 if [[ "$SHELL" == *zsh ]]; then
   ok "\$SHELL is zsh ($SHELL)"
+elif [[ -n "${CI:-}" ]]; then
+  # --non-interactive skips chsh; CI doesn't need a login shell change.
+  info "\$SHELL is $SHELL (chsh skipped in CI / non-interactive mode)"
 else
   fail "\$SHELL is $SHELL (expected zsh; run 'chsh -s \$(command -v zsh)')"
 fi
@@ -61,12 +70,14 @@ echo ""
 echo "== Identity =="
 if [[ -f "$HOME/.gitconfig.local" ]]; then
   ok "~/.gitconfig.local exists"
-  name=$(git config --get user.name 2>/dev/null || true)
-  email=$(git config --get user.email 2>/dev/null || true)
+  # Read via --file: CI sets GIT_CONFIG_GLOBAL to a temp file, breaking the
+  # ~/.gitconfig [include] chain. Sidecar is the contract per README.
+  name=$(git config --file "$HOME/.gitconfig.local" --get user.name 2>/dev/null || true)
+  email=$(git config --file "$HOME/.gitconfig.local" --get user.email 2>/dev/null || true)
   if [[ -n "$name" && -n "$email" ]]; then
     ok "git identity resolves: $name <$email>"
   else
-    fail "git config user.name/user.email do not resolve"
+    fail "git config user.name/user.email do not resolve in ~/.gitconfig.local"
   fi
 else
   fail "~/.gitconfig.local missing — run install/seed-identity.sh"
@@ -80,6 +91,14 @@ check_symlink "$HOME/.gitconfig"            "$DOTFILES"
 check_symlink "$HOME/.gitignore_global"     "$DOTFILES"
 check_symlink "$HOME/.tmux.conf"            "$DOTFILES"
 check_symlink "$HOME/.config/starship.toml" "$DOTFILES"
+
+echo ""
+echo "== CLI cluster (optional) =="
+check_bin_info zoxide
+check_bin_info atuin
+check_bin_info bat
+check_bin_info fd
+check_bin_info delta
 
 echo ""
 echo "== Optional =="

@@ -1,8 +1,4 @@
 #Requires -Version 7.0
-<#
-.SYNOPSIS
-    Prompt for git identity; write gitignored sidecars.
-#>
 [CmdletBinding()]
 param()
 
@@ -18,9 +14,20 @@ if ((Test-Path $GitConfigLocal) -and (Test-Path $PwshLocal)) {
 
 Write-Host "==> Seeding identity (writes to ~\.gitconfig.local and ~\.pwsh.local.ps1)"
 
-$GitName  = Read-Host 'Git user.name'
-$GitEmail = Read-Host 'Git user.email'
-$GhHandle = Read-Host 'GitHub handle (optional, press enter to skip)'
+if ($env:NON_INTERACTIVE) {
+    if (-not $env:GIT_USER_NAME -or -not $env:GIT_USER_EMAIL) {
+        Write-Error 'NON_INTERACTIVE set but GIT_USER_NAME or GIT_USER_EMAIL missing'
+        exit 1
+    }
+    $GitName  = $env:GIT_USER_NAME
+    $GitEmail = $env:GIT_USER_EMAIL
+    $GhHandle = if ($env:GH_HANDLE) { $env:GH_HANDLE } else { '' }
+    Write-Host '  (using GIT_USER_NAME / GIT_USER_EMAIL from environment)'
+} else {
+    $GitName  = Read-Host 'Git user.name'
+    $GitEmail = Read-Host 'Git user.email'
+    $GhHandle = Read-Host 'GitHub handle (optional, press enter to skip)'
+}
 
 if (-not (Test-Path $GitConfigLocal)) {
     $content = @"

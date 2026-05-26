@@ -1,0 +1,12 @@
+# Special-cases (starship, eza, gh, atuin) install via prereqs-linux.sh.
+stow
+zsh
+tmux
+git
+curl
+fzf
+ripgrep
+zoxide
+bat
+fd-find
+git-delta
