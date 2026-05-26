@@ -1,6 +1,7 @@
 # Identity lives in ~/.gitconfig.local (gitignored).
 [include]
     path = ~/.gitconfig.local
+    path = ~/.gitconfig.delta
 
 [push]
     autoSetupRemote = true

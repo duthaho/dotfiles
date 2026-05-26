@@ -1,0 +1,70 @@
+name: bootstrap
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Weekly canary: catches upstream package drift.
+    - cron: '0 8 * * 1'
+
+concurrency:
+  group: bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GIT_USER_NAME: CI Bot
+  GIT_USER_EMAIL: ci@example.invalid
+
+jobs:
+  ubuntu:
+    name: bootstrap on ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run bootstrap (non-interactive)
+        run: ./bootstrap.sh --non-interactive
+
+      - name: Run doctor
+        run: ./doctor.sh
+
+  macos:
+    name: bootstrap on macos-latest
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run bootstrap (non-interactive)
+        run: ./bootstrap.sh --non-interactive
+
+      - name: Run doctor
+        run: ./doctor.sh
+
+  windows:
+    name: bootstrap on windows-latest
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run bootstrap (non-interactive)
+        run: .\bootstrap.ps1 -NonInteractive
+
+      - name: Refresh PATH after winget installs
+        run: |
+          @(
+            [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
+          ) -split ';' | Where-Object { $_ } | Sort-Object -Unique |
+            Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Run doctor
+        run: .\doctor.ps1

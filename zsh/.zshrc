@@ -27,3 +27,6 @@ fi
 if [[ -d "$HOME/.npm-global/bin" ]]; then
   export PATH="$HOME/.npm-global/bin:$PATH"
 fi
+. "$HOME/.atuin/bin/env"
+
+eval "$(atuin init zsh)"

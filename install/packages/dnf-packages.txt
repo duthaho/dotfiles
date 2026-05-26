@@ -1,0 +1,15 @@
+stow
+zsh
+tmux
+git
+curl
+fzf
+ripgrep
+starship
+eza
+gh
+zoxide
+atuin
+bat
+fd-find
+git-delta
