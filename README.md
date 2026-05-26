@@ -2,60 +2,68 @@
 
 [![bootstrap](https://github.com/duthaho/dotfiles/actions/workflows/bootstrap.yml/badge.svg)](https://github.com/duthaho/dotfiles/actions/workflows/bootstrap.yml)
 
-Cross-platform dotfiles for macOS, Linux, WSL2, and Windows-native. Stow on Unix, PowerShell symlinks on Windows. Identity stays in gitignored `*.local` sidecars so the repo is safe to fork.
+Cross-platform dotfiles for macOS, Linux/WSL2, and Windows native. `stow` on Unix, PowerShell symlinks on Windows. Identity stays in gitignored `*.local` sidecars so the repo is safe to fork.
 
-## Install
+## Quickstart
 
 **macOS / Linux / WSL2:**
 
 ```bash
-git clone https://github.com/duthaho/dotfiles ~/.dotfiles
-cd ~/.dotfiles
-./bootstrap.sh
+git clone https://github.com/duthaho/dotfiles ~/.dotfiles && cd ~/.dotfiles && ./bootstrap.sh
 ```
 
-**Windows-native (PowerShell 7):**
+**Windows (PowerShell 7):**
 
 ```powershell
-git clone https://github.com/duthaho/dotfiles $HOME\.dotfiles
-cd $HOME\.dotfiles
-.\bootstrap.ps1
+git clone https://github.com/duthaho/dotfiles $HOME\.dotfiles; cd $HOME\.dotfiles; .\bootstrap.ps1
 ```
 
-Bootstrap takes ~5 minutes on a warm package cache, ~15 minutes on a cold one. It asks for three things: `git user.name`, `git user.email`, optional GitHub handle.
+Bootstrap prompts for `git user.name`, `git user.email`, and an optional GitHub handle. ~5 min on a warm package cache, ~15 min cold. Open a fresh shell when it's done.
 
-## What's inside
+## Daily commands
 
-| Module     | Purpose                              | Platforms          | Default install |
-|------------|--------------------------------------|--------------------|-----------------|
-| `zsh`      | Shell config + aliases + lazy compl  | macOS, Linux, WSL  | yes             |
-| `git`      | gitconfig + global ignore             | all                | yes             |
-| `tmux`     | Terminal multiplexer config           | macOS, Linux, WSL  | yes             |
-| `starship` | Cross-shell prompt                    | macOS, Linux, WSL  | yes             |
-| `pwsh`     | PowerShell 7 profile + oh-my-posh     | Windows            | yes (Windows)   |
-| `wt`       | Windows Terminal settings             | Windows            | yes (Windows)   |
-| `nvim`     | Neovim IDE (lazy.nvim + LSP)          | all                | opt-in          |
+After bootstrap, `dot` is the front door — same set of commands on every platform.
 
-## Modern CLI cluster
+```
+dot bootstrap [flags]    re-run the full bootstrap (use after a pull that changed packages)
+dot doctor               health checks
+dot stow <module>        symlink a specific module (e.g., nvim)
+dot defaults apply       apply opt-in OS defaults
+dot defaults revert <snapshot.json>
+                         restore a previous apply
+dot update               git pull --ff-only + re-stow default modules (does NOT reinstall packages)
+dot help                 show usage
+```
 
-The bootstrap installs these alongside the module configs. They're informational
-rows in `doctor.*` (not required), so old machines that haven't been re-bootstrapped
-still pass.
+## What's installed
 
-| Tool      | Purpose                                       | Wired into                |
-|-----------|-----------------------------------------------|---------------------------|
-| `zoxide`  | Smart `cd` — fuzzy jumps by frecency          | zsh + pwsh `cd` shim      |
-| `atuin`   | SQLite-backed shell history; Ctrl-R picker    | zsh + pwsh `Ctrl-R`       |
-| `bat`     | `cat` with syntax highlighting                | zsh `cat` alias           |
-| `fd`      | `find` replacement with sensible defaults     | (used directly)           |
-| `delta`   | Syntax-highlighted git diff                   | `git/.gitconfig.delta`    |
+**Modules** — config bundles symlinked into `$HOME`:
+
+| Module     | Purpose                            | Platforms       | Install |
+|------------|------------------------------------|-----------------|---------|
+| `zsh`      | shell config, aliases, completions | macOS/Linux/WSL | default |
+| `git`      | gitconfig + global ignore          | all             | default |
+| `tmux`     | multiplexer config                 | macOS/Linux/WSL | default |
+| `starship` | cross-shell prompt                 | macOS/Linux/WSL | default |
+| `pwsh`     | PowerShell 7 profile + oh-my-posh  | Windows         | default |
+| `wt`       | Windows Terminal settings          | Windows         | default |
+| `nvim`     | Neovim (lazy.nvim + LSP)           | all             | opt-in  |
+
+**CLI cluster** — installed via the package manifest, wired into the shell:
+
+| Tool     | Why                            | Wired into                |
+|----------|--------------------------------|---------------------------|
+| `zoxide` | smart `cd` by frecency         | zsh + pwsh `cd` shim      |
+| `atuin`  | SQLite shell history (Ctrl-R)  | zsh + pwsh                |
+| `bat`    | `cat` with syntax highlighting | zsh `cat` alias           |
+| `fd`     | better `find`                  | (used directly)           |
+| `delta`  | syntax-highlighted git diffs   | `~/.gitconfig.delta`      |
+
+Also installed: `stow`, `fzf`, `ripgrep`, `eza`, `gh`, `lazygit`. Package lists live in [install/packages/](install/packages/) (Brewfile / apt-packages.txt / dnf-packages.txt / winget-packages.json).
 
 ## OS defaults (opt-in)
 
-Two scripts apply a curated set of OS productivity defaults — key repeat,
-file-extension visibility, screenshot folder, smart-quote suppression for
-code typing, dark mode on Windows, etc. They are **opt-in** and never run
-as part of a normal bootstrap.
+Curated productivity settings — key repeat, file-extension visibility, screenshot folder, dark mode on Windows, smart-quote suppression for code typing, etc. Never applied automatically.
 
 ```bash
 ./bootstrap.sh --apply-defaults      # macOS — 23 settings
@@ -65,53 +73,25 @@ as part of a normal bootstrap.
 .\bootstrap.ps1 -ApplyDefaults       # Windows — 17 settings
 ```
 
-Each apply writes a snapshot to `~/.dotfiles-defaults-backup/<timestamp>.json`
-capturing every key's previous value. Revert any apply with:
+Every apply writes a snapshot to `~/.dotfiles-defaults-backup/<timestamp>.json` capturing each key's previous value. Roll back with `dot defaults revert <snapshot>`.
 
-```bash
-./install/defaults/macos.sh revert ~/.dotfiles-defaults-backup/<file>.json
-```
+CI never applies these (`--non-interactive` skips the block). Linux is intentionally out of scope — GNOME/KDE/XFCE differ too much for a single bundle.
 
-```powershell
-.\install\defaults\windows.ps1 revert ~\.dotfiles-defaults-backup\<file>.json
-```
+## Forking
 
-`--non-interactive` skips the defaults block entirely, so CI never applies
-them. Linux is intentionally out of scope (GNOME/KDE/XFCE differ too much
-for a single bundle).
+Personal info lives in three gitignored sidecars, seeded by `install/seed-identity.*`:
 
-## Daily commands
+- `~/.gitconfig.local` — `[user]` name and email
+- `~/.zshrc.local` — zsh tweaks, machine-specific exports
+- `~/.pwsh.local.ps1` — pwsh equivalent
 
-After bootstrap, the `dot` command wraps everything. Open a fresh shell
-once so `~/.local/bin/dot` (Unix) / the pwsh `dot` function (Windows)
-becomes available, then:
+The repo itself has no personal info. Fork freely; bootstrap will prompt you for yours.
 
-```bash
-dot bootstrap [flags]                # re-run the full bootstrap
-dot doctor                           # health checks
-dot stow <module>                    # symlink a specific module (e.g., nvim)
-dot defaults apply                   # apply OS defaults (macOS / Windows)
-dot defaults revert <snapshot.json>  # revert from a snapshot
-dot update                           # git pull --ff-only + re-stow defaults
-dot help                             # show usage
-```
+## Notes
 
-`dot update` only pulls and re-stows — it does NOT re-run package installs.
-Use `dot bootstrap` when you've added new packages or want a full refresh.
-
-**Note for Graphviz users:** Graphviz installs a binary called `dot` for
-rendering `.dot` graph files. The dotfiles `dot` shadows it on PATH. If you
-use Graphviz, either rename this entrypoint (rename `bin/dot` and update
-the symlink), or invoke Graphviz's tool explicitly via its full path.
-
-## Verify
-
-```bash
-./doctor.sh        # Unix
-.\doctor.ps1       # Windows
-```
-
-Prints a pass/fail row per assertion. Required rows must all pass; the nvim row is informational.
+- **Doctor output:** required rows must pass; optional rows (`nvim`, CLI cluster, OS defaults) are informational and never fail the run.
+- **Graphviz `dot` collision:** Graphviz installs a `dot` binary that this entrypoint shadows on PATH. If you use Graphviz, rename `bin/dot` (and the symlink it creates) or invoke Graphviz's `dot` via its full path.
+- **CI:** `bootstrap.sh --non-interactive` / `bootstrap.ps1 -NonInteractive` run end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` per PR and weekly via cron — catches upstream package drift early.
 
 ## License
 
