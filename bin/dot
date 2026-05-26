@@ -10,6 +10,7 @@ while [ -L "$script" ]; do
   esac
 done
 DOT_REPO="${DOTFILES:-$(cd "$(dirname "$script")/.." && pwd)}"
+export DOTFILES="$DOT_REPO"
 
 usage() {
   cat <<'EOF'

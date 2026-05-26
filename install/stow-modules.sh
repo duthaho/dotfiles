@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
+DOTFILES="${DOTFILES:-$(cd "$(dirname "$0")/.." && pwd)}"
 DEFAULT_MODULES=(zsh git tmux starship)
 
 DRY_RUN=""
