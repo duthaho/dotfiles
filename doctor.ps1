@@ -71,6 +71,7 @@ Check-Bin-Info atuin
 Check-Bin-Info bat
 Check-Bin-Info fd
 Check-Bin-Info delta
+Check-Bin-Info dot
 
 Write-Host ""
 Write-Host "== Optional =="

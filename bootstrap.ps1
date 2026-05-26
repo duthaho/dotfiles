@@ -20,6 +20,9 @@ if (-not $DotfilesPath) {
     $DotfilesPath = $PSScriptRoot
 }
 $env:DOTFILES = $DotfilesPath
+if (-not $DryRun) {
+    [Environment]::SetEnvironmentVariable('DOTFILES', $DotfilesPath, 'User')
+}
 
 Write-Host "==> Dotfiles repo: $DotfilesPath"
 if ($DryRun) { Write-Host "==> DRY RUN" }

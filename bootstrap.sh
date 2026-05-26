@@ -47,7 +47,7 @@ export NON_INTERACTIVE
 
 # 0. Ensure helper scripts are executable. The +x bit doesn't always survive
 # transfers from Windows filesystems (git on Windows, scp/rsync, zip archives).
-chmod +x "$DOTFILES/doctor.sh" "$DOTFILES/install/"*.sh 2>/dev/null || true
+chmod +x "$DOTFILES/doctor.sh" "$DOTFILES/install/"*.sh "$DOTFILES/install/defaults/"*.sh "$DOTFILES/bin/dot" 2>/dev/null || true
 
 # 1. Detect OS
 OS=$("$DOTFILES/install/detect-os.sh")
@@ -72,6 +72,11 @@ esac
 
 # 4. Stow default modules
 "$DOTFILES/install/stow-modules.sh" $DRY_RUN
+
+if [[ -z "$DRY_RUN" ]]; then
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$DOTFILES/bin/dot" "$HOME/.local/bin/dot"
+fi
 
 # 5. Optional: Oh My Zsh + plugins (separately from package manager)
 if [[ -z "$DRY_RUN" && ! -d "$HOME/.oh-my-zsh" ]]; then

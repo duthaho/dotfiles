@@ -99,6 +99,7 @@ check_bin_info atuin
 check_bin_info bat
 check_bin_info fd
 check_bin_info delta
+check_bin_info dot
 
 echo ""
 echo "== Optional =="

@@ -80,6 +80,30 @@ capturing every key's previous value. Revert any apply with:
 them. Linux is intentionally out of scope (GNOME/KDE/XFCE differ too much
 for a single bundle).
 
+## Daily commands
+
+After bootstrap, the `dot` command wraps everything. Open a fresh shell
+once so `~/.local/bin/dot` (Unix) / the pwsh `dot` function (Windows)
+becomes available, then:
+
+```bash
+dot bootstrap [flags]                # re-run the full bootstrap
+dot doctor                           # health checks
+dot stow <module>                    # symlink a specific module (e.g., nvim)
+dot defaults apply                   # apply OS defaults (macOS / Windows)
+dot defaults revert <snapshot.json>  # revert from a snapshot
+dot update                           # git pull --ff-only + re-stow defaults
+dot help                             # show usage
+```
+
+`dot update` only pulls and re-stows — it does NOT re-run package installs.
+Use `dot bootstrap` when you've added new packages or want a full refresh.
+
+**Note for Graphviz users:** Graphviz installs a binary called `dot` for
+rendering `.dot` graph files. The dotfiles `dot` shadows it on PATH. If you
+use Graphviz, either rename this entrypoint (rename `bin/dot` and update
+the symlink), or invoke Graphviz's tool explicitly via its full path.
+
 ## Verify
 
 ```bash

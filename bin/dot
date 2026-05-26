@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script="$0"
+while [ -L "$script" ]; do
+  link="$(readlink "$script")"
+  case "$link" in
+    /*) script="$link" ;;
+    *)  script="$(dirname "$script")/$link" ;;
+  esac
+done
+DOT_REPO="${DOTFILES:-$(cd "$(dirname "$script")/.." && pwd)}"
+
+usage() {
+  cat <<'EOF'
+Usage: dot <command> [args]
+
+Commands:
+  bootstrap [flags]              Run the full bootstrap
+  doctor                         Run health checks
+  stow <module>                  Symlink a specific module (e.g., nvim)
+  defaults <apply|revert [snap]> Apply or revert OS defaults (macOS)
+  update                         git pull --ff-only + re-stow default modules
+  help                           Show this message
+EOF
+}
+
+case "${1:-help}" in
+  bootstrap) shift; exec "$DOT_REPO/bootstrap.sh" "$@" ;;
+  doctor)    exec "$DOT_REPO/doctor.sh" ;;
+  stow)      shift; exec "$DOT_REPO/install/stow-modules.sh" "$@" ;;
+  defaults)
+    shift
+    case "$(uname -s)" in
+      Darwin) exec "$DOT_REPO/install/defaults/macos.sh" "$@" ;;
+      *) echo "ERROR: dot defaults: macOS only on this OS ($(uname -s))" >&2; exit 1 ;;
+    esac
+    ;;
+  update)
+    cd "$DOT_REPO"
+    git pull --ff-only
+    exec "$DOT_REPO/install/stow-modules.sh"
+    ;;
+  help|--help|-h) usage ;;
+  *)
+    echo "ERROR: unknown command: $1" >&2
+    echo "Run: dot help" >&2
+    exit 2
+    ;;
+esac
