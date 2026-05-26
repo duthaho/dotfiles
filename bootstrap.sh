@@ -7,22 +7,26 @@ export DOTFILES
 DRY_RUN=""
 INSTALL_NVIM="${INSTALL_NVIM:-}"
 NON_INTERACTIVE=""
+APPLY_DEFAULTS=""
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN="--dry-run" ;;
     --with-nvim) INSTALL_NVIM=1 ;;
     --non-interactive) NON_INTERACTIVE=1 ;;
+    --apply-defaults) APPLY_DEFAULTS=1 ;;
     -h|--help)
       cat <<EOF
-Usage: $0 [--dry-run] [--with-nvim] [--non-interactive]
+Usage: $0 [--dry-run] [--with-nvim] [--non-interactive] [--apply-defaults]
 
   --dry-run          Print actions without performing them
   --with-nvim        Skip the prompt; install Neovim module
   --non-interactive  Run unattended (CI / scripted installs):
                        - Skip the nvim prompt (treats as no, unless --with-nvim set)
                        - Skip the chsh step
+                       - Skip --apply-defaults even if passed
                        - Read git identity from \$GIT_USER_NAME / \$GIT_USER_EMAIL
+  --apply-defaults   Apply OS defaults (macOS only; Windows uses bootstrap.ps1)
 
 Environment:
   DOTFILES        Path to repo (defaults to dirname of this script)
@@ -135,6 +139,17 @@ if [[ -z "$DRY_RUN" && -z "$NON_INTERACTIVE" && "$SHELL" != *zsh ]]; then
       echo "      sudo chsh -s $ZSH_PATH $USER"
     fi
   fi
+fi
+
+if [[ -z "$DRY_RUN" && -z "$NON_INTERACTIVE" && "$APPLY_DEFAULTS" == "1" ]]; then
+  case "$OS" in
+    macos)
+      "$DOTFILES/install/defaults/macos.sh" apply
+      ;;
+    linux|wsl)
+      echo "==> --apply-defaults: no defaults bundle for Linux (skipping)"
+      ;;
+  esac
 fi
 
 echo ""

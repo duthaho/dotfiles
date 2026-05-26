@@ -4,6 +4,7 @@ param(
     [switch]$DryRun,
     [switch]$InstallNvim,
     [switch]$NonInteractive,
+    [switch]$ApplyDefaults,
     [string]$DotfilesPath
 )
 
@@ -62,6 +63,10 @@ if (-not $DryRun) {
                 -ErrorAction Continue
         }
     }
+}
+
+if (-not $DryRun -and -not $NonInteractive -and $ApplyDefaults) {
+    & "$DotfilesPath\install\defaults\windows.ps1" apply
 }
 
 Write-Host ""

@@ -118,6 +118,24 @@ else
 fi
 
 echo ""
+echo "== OS defaults =="
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  match=0; total=3
+  [[ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)" == "2" ]] && match=$((match+1))
+  [[ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)" == "1" ]] && match=$((match+1))
+  [[ "$(defaults read com.apple.dock autohide 2>/dev/null)" == "1" ]] && match=$((match+1))
+  if [[ $match -eq $total ]]; then
+    ok "OS defaults applied ($match/$total spot-checks match)"
+  elif [[ $match -eq 0 ]]; then
+    info "OS defaults not applied (run: ./bootstrap.sh --apply-defaults)"
+  else
+    info "OS defaults partial ($match/$total spot-checks match)"
+  fi
+else
+  info "OS defaults: macOS only; current OS is $(uname -s)"
+fi
+
+echo ""
 echo "== Summary =="
 echo "  Passed: $PASS"
 echo "  Failed: $FAIL"

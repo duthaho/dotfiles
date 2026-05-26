@@ -84,6 +84,26 @@ if (Get-Command nvim -ErrorAction SilentlyContinue) {
 }
 
 Write-Host ""
+Write-Host "== OS defaults =="
+$match = 0; $total = 3
+$expected = @(
+    @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'; Name = 'HideFileExt'; Value = 0 },
+    @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'; Name = 'AppsUseLightTheme'; Value = 0 },
+    @{ Path = 'HKCU:\Control Panel\Keyboard'; Name = 'KeyboardSpeed'; Value = '31' }
+)
+foreach ($e in $expected) {
+    $cur = (Get-ItemProperty -Path $e.Path -Name $e.Name -ErrorAction SilentlyContinue).$($e.Name)
+    if ($null -ne $cur -and "$cur" -eq "$($e.Value)") { $match++ }
+}
+if ($match -eq $total) {
+    Ok "OS defaults applied ($match/$total spot-checks match)"
+} elseif ($match -eq 0) {
+    Info "OS defaults not applied (run: .\bootstrap.ps1 -ApplyDefaults)"
+} else {
+    Info "OS defaults partial ($match/$total spot-checks match)"
+}
+
+Write-Host ""
 Write-Host "== Summary =="
 Write-Host "  Passed: $Pass"
 Write-Host "  Failed: $Fail"

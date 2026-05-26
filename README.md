@@ -50,6 +50,36 @@ still pass.
 | `fd`      | `find` replacement with sensible defaults     | (used directly)           |
 | `delta`   | Syntax-highlighted git diff                   | `git/.gitconfig.delta`    |
 
+## OS defaults (opt-in)
+
+Two scripts apply a curated set of OS productivity defaults — key repeat,
+file-extension visibility, screenshot folder, smart-quote suppression for
+code typing, dark mode on Windows, etc. They are **opt-in** and never run
+as part of a normal bootstrap.
+
+```bash
+./bootstrap.sh --apply-defaults      # macOS — 23 settings
+```
+
+```powershell
+.\bootstrap.ps1 -ApplyDefaults       # Windows — 17 settings
+```
+
+Each apply writes a snapshot to `~/.dotfiles-defaults-backup/<timestamp>.json`
+capturing every key's previous value. Revert any apply with:
+
+```bash
+./install/defaults/macos.sh revert ~/.dotfiles-defaults-backup/<file>.json
+```
+
+```powershell
+.\install\defaults\windows.ps1 revert ~\.dotfiles-defaults-backup\<file>.json
+```
+
+`--non-interactive` skips the defaults block entirely, so CI never applies
+them. Linux is intentionally out of scope (GNOME/KDE/XFCE differ too much
+for a single bundle).
+
 ## Verify
 
 ```bash
