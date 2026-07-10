@@ -118,6 +118,19 @@ else
   info "nvim not installed (opt-in)"
 fi
 
+# kitty — default on macOS/Linux; informational only (never fails the run).
+if command -v kitty >/dev/null 2>&1; then
+  ok "kitty installed"
+  kitty_resolved=$(readlink -f "$HOME/.config/kitty/kitty.conf" 2>/dev/null || true)
+  if [[ "$kitty_resolved" == "$DOTFILES"* ]]; then
+    ok "kitty config symlinked → $kitty_resolved"
+  else
+    info "kitty installed but config not stowed (run: install/stow-modules.sh kitty)"
+  fi
+else
+  info "kitty not installed (macOS/Linux only)"
+fi
+
 echo ""
 echo "== OS defaults =="
 if [[ "$(uname -s)" == "Darwin" ]]; then
