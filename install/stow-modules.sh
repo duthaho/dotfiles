@@ -20,30 +20,6 @@ set -euo pipefail
 DOTFILES="${DOTFILES:-$(cd "$(dirname "$0")/.." && pwd)}"
 DEFAULT_MODULES=(zsh git tmux starship)
 
-DRY_RUN=""
-REMOVE=""
-NON_INTERACTIVE=0
-MODULES=()
-
-for arg in "$@"; do
-  case "$arg" in
-    --dry-run)         DRY_RUN="-n" ;;
-    --remove)          REMOVE="-D" ;;
-    --non-interactive) NON_INTERACTIVE=1 ;;
-    *)                 MODULES+=("$arg") ;;
-  esac
-done
-
-# No TTY on stdin (CI, piped) → nobody can answer a prompt.
-# STOW_MODULES_FORCE_INTERACTIVE=1 lets tests drive the prompt via a pipe.
-if [[ "${STOW_MODULES_FORCE_INTERACTIVE:-0}" != "1" ]] && ! [ -t 0 ]; then
-  NON_INTERACTIVE=1
-fi
-
-if [[ ${#MODULES[@]} -eq 0 ]]; then
-  MODULES=("${DEFAULT_MODULES[@]}")
-fi
-
 BACKUP_ROOT="$HOME/.dotfiles-backup"
 BACKUP_DIR=""   # created lazily on first backup
 BACKUP_ALL=0    # set when the user answers [A]ll
@@ -81,18 +57,32 @@ ignore_arg() { # $1 = path relative to the module root
   printf -- '--ignore=^%s$' "$esc"
 }
 
-# Print the relative paths stow reports as conflicts for a module.
-# Known forms (stow 2.3.1):
-#   * existing target is neither a link nor a directory: <rel>   (real file)
-#   * existing target is not owned by stow: <rel>                (foreign link)
-# Unknown conflict forms are NOT swallowed — stow itself aborts loudly on
-# them in the final invocation below.
+# Parse stow's conflict report (read from stdin) into package-relative target
+# paths, one per line. Stow reworded these messages between 2.3.x and 2.4.x, so
+# BOTH wordings are matched — parsing only the 2.3.x form silently detected zero
+# conflicts on Homebrew's stow 2.4.x, backed nothing up, and let stow hard-abort.
+#   2.3.x: "  * existing target is neither a link nor a directory: <rel>"
+#   2.4.x: "  * cannot stow <src> over existing target <rel> since neither a
+#             link nor a directory and --adopt not specified"
+#          "  * cannot stow non-directory <src> over existing directory target <rel>"
+#          "  * cannot stow directory <src> over existing non-directory target <rel>"
+#   both:  "  * existing target is not owned by stow: <rel>"   (foreign symlink)
+# Other conflict forms (e.g. "stowed to a different package" — two of your own
+# modules collide) are intentionally NOT matched: backup is the wrong fix, so
+# stow is left to abort loudly on them.
+parse_conflict_paths() {
+  sed -n \
+    -e 's/^  \* existing target is neither a link nor a directory: //p' \
+    -e 's/^  \* existing target is not owned by stow: //p' \
+    -e 's/^  \* cannot stow .* over existing target \(.*\) since neither a link nor a directory.*$/\1/p' \
+    -e 's/^  \* cannot stow non-directory .* over existing directory target \(.*\)$/\1/p' \
+    -e 's/^  \* cannot stow directory .* over existing non-directory target \(.*\)$/\1/p'
+}
+
 detect_conflicts() { # $1 = module
   # stow exits 1 when conflicts exist; with pipefail that would sink the
-  # whole pipeline, so neutralize stow's status — sed's is what matters.
-  { stow -n -t "$HOME" "$1" 2>&1 || true; } | sed -n \
-    -e 's/^  \* existing target is neither a link nor a directory: //p' \
-    -e 's/^  \* existing target is not owned by stow: //p'
+  # whole pipeline, so neutralize stow's status — the parse is what matters.
+  { stow -n -t "$HOME" "$1" 2>&1 || true; } | parse_conflict_paths
 }
 
 prompt_action() { # $1 = rel; echoes s|b|A
@@ -155,6 +145,36 @@ process_module() { # $1 = module (stow direction only, never --remove)
   # ${arr[@]+...} keeps empty-array expansion safe on bash 3.2 (macOS).
   stow $DRY_RUN -t "$HOME" ${ignores[@]+"${ignores[@]}"} "$mod"
 }
+
+# When sourced (unit tests), stop here — expose the functions, run no main.
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+  return 0 2>/dev/null || true
+fi
+
+# --- main ---
+DRY_RUN=""
+REMOVE=""
+NON_INTERACTIVE=0
+MODULES=()
+
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run)         DRY_RUN="-n" ;;
+    --remove)          REMOVE="-D" ;;
+    --non-interactive) NON_INTERACTIVE=1 ;;
+    *)                 MODULES+=("$arg") ;;
+  esac
+done
+
+# No TTY on stdin (CI, piped) → nobody can answer a prompt.
+# STOW_MODULES_FORCE_INTERACTIVE=1 lets tests drive the prompt via a pipe.
+if [[ "${STOW_MODULES_FORCE_INTERACTIVE:-0}" != "1" ]] && ! [ -t 0 ]; then
+  NON_INTERACTIVE=1
+fi
+
+if [[ ${#MODULES[@]} -eq 0 ]]; then
+  MODULES=("${DEFAULT_MODULES[@]}")
+fi
 
 cd "$DOTFILES"
 

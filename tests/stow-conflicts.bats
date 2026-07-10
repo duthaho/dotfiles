@@ -6,6 +6,52 @@ load helpers/setup
 setup()    { make_sandbox; }
 teardown() { teardown_sandbox; }
 
+# --- parse_conflict_paths: version-robust conflict-message parsing ---
+# Sourced in a subshell so the SUT's `set -e` can't leak into the test runner.
+
+parse() { # feeds stdin lines (as args) through parse_conflict_paths
+  local input="$1"
+  run bash -c 'source "$1"; printf "%b" "$2" | parse_conflict_paths' _ "$SUT" "$input"
+}
+
+@test "parse: stow 2.3.x real-file conflict wording" {
+  parse "WARNING! stowing git would cause conflicts:\n  * existing target is neither a link nor a directory: .gitconfig\nAll operations aborted.\n"
+  [ "$status" -eq 0 ]
+  [ "$output" = ".gitconfig" ]
+}
+
+@test "parse: stow 2.4.x real-file conflict wording (the macOS CI failure)" {
+  parse "WARNING! stowing git would cause conflicts:\n  * cannot stow work/dotfiles/dotfiles/git/.gitconfig over existing target .gitconfig since neither a link nor a directory and --adopt not specified\nAll operations aborted.\n"
+  [ "$status" -eq 0 ]
+  [ "$output" = ".gitconfig" ]
+}
+
+@test "parse: stow 2.4.x nested path preserved" {
+  parse "  * cannot stow x/zsh/.config/deep/f.conf over existing target .config/deep/f.conf since neither a link nor a directory and --adopt not specified\n"
+  [ "$output" = ".config/deep/f.conf" ]
+}
+
+@test "parse: foreign-symlink wording (both versions)" {
+  parse "  * existing target is not owned by stow: .vimrc\n"
+  [ "$output" = ".vimrc" ]
+}
+
+@test "parse: stow 2.4.x directory-over-file wording" {
+  parse "  * cannot stow directory x/zsh/.config over existing non-directory target .config\n"
+  [ "$output" = ".config" ]
+}
+
+@test "parse: mixed 2.4.x report yields all conflicting paths" {
+  parse "  * cannot stow a/git/.gitconfig over existing target .gitconfig since neither a link nor a directory and --adopt not specified\n  * existing target is not owned by stow: .vimrc\n"
+  [ "${lines[0]}" = ".gitconfig" ]
+  [ "${lines[1]}" = ".vimrc" ]
+}
+
+@test "parse: non-conflict lines are ignored" {
+  parse "LINK: .zshrc => ../repo/zsh/.zshrc\nWARNING: in simulation mode so not modifying filesystem.\n"
+  [ "$output" = "" ]
+}
+
 @test "sanity: clean home stows fixture module without conflicts" {
   run "$SUT" zsh
   [ "$status" -eq 0 ]
