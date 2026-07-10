@@ -84,6 +84,18 @@ parse() { # feeds stdin lines (as args) through parse_conflict_paths
   [ ! -e "$DOTFILES/kitty/.config/kitty/current-theme.conf" ]
 }
 
+@test "bootstrap --dry-run installs nothing and stows no kitty config" {
+  # Runs the real bootstrap against a throwaway HOME; --dry-run must reach the
+  # kitty block, announce intent, and touch nothing (no install, no ~/.config/kitty).
+  local h; h="$(mktemp -d)"
+  # DOTFILES must point at the real repo (setup() exports a fixture path).
+  run env HOME="$h" DOTFILES="$REPO_ROOT" "$REPO_ROOT/bootstrap.sh" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kitty: DRY RUN"* ]]
+  [ ! -e "$h/.config/kitty" ]
+  command rm -rf "$h"
+}
+
 # --- non-interactive conflict flow (spec criteria 1–3) ---
 
 @test "non-interactive: conflicting real file is backed up, then linked" {

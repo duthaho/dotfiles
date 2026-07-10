@@ -41,13 +41,16 @@ install_jetbrains_nerd_font() { # $1 = macos|linux
       local url="https://github.com/ryanoasis/nerd-fonts/releases/download/${NERD_FONTS_VERSION}/${FONT_ASSET}"
       local tmp
       tmp="$(mktemp -d)"
-      if curl -fsSL "$url" | tar -xJ -C "$tmp" 2>/dev/null; then
-        mkdir -p "$dest"
-        find "$tmp" -name '*.ttf' -exec cp {} "$dest/" \;
+      # Each step is an `if` condition so `set -e` can't abort mid-install —
+      # a post-download filesystem error (perms, disk full) must warn, not kill
+      # bootstrap (best-effort contract).
+      if ! curl -fsSL "$url" | tar -xJ -C "$tmp" 2>/dev/null; then
+        echo "WARN: Nerd Font download/extract failed ($url); install it manually" >&2
+      elif ! { mkdir -p "$dest" && find "$tmp" -name '*.ttf' -exec cp {} "$dest/" \; ; }; then
+        echo "WARN: writing Nerd Font to $dest failed; install it manually" >&2
+      else
         command -v fc-cache >/dev/null 2>&1 && fc-cache -f "$dest" >/dev/null 2>&1 || true
         echo "==> Installed Nerd Font TTFs to $dest"
-      else
-        echo "WARN: Nerd Font download/extract failed ($url); install it manually" >&2
       fi
       command rm -rf "$tmp"
       ;;

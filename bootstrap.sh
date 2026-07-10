@@ -140,7 +140,7 @@ else
     macos)
       command -v kitty >/dev/null 2>&1 || brew install --cask kitty \
         || echo "WARN: kitty install failed; install it manually" >&2
-      "$DOTFILES/install/fonts.sh" macos
+      "$DOTFILES/install/fonts.sh" macos || true
       mkdir -p "$HOME/.config/kitty"
       "$DOTFILES/install/stow-modules.sh" $STOW_FLAGS kitty
       ;;
@@ -152,7 +152,7 @@ else
           sudo dnf install -y kitty || echo "WARN: dnf kitty install failed" >&2
         fi
       fi
-      "$DOTFILES/install/fonts.sh" linux
+      "$DOTFILES/install/fonts.sh" linux || true
       mkdir -p "$HOME/.config/kitty"
       "$DOTFILES/install/stow-modules.sh" $STOW_FLAGS kitty
       ;;
