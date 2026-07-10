@@ -71,7 +71,9 @@ esac
 [[ -z "$DRY_RUN" ]] && "$DOTFILES/install/seed-identity.sh"
 
 # 4. Stow default modules
-"$DOTFILES/install/stow-modules.sh" $DRY_RUN
+STOW_FLAGS="$DRY_RUN"
+[[ -n "$NON_INTERACTIVE" ]] && STOW_FLAGS="$STOW_FLAGS --non-interactive"
+"$DOTFILES/install/stow-modules.sh" $STOW_FLAGS
 
 if [[ -z "$DRY_RUN" ]]; then
   mkdir -p "$HOME/.local/bin"
@@ -122,7 +124,7 @@ if [[ -z "$DRY_RUN" ]]; then
         fi
         ;;
     esac
-    "$DOTFILES/install/stow-modules.sh" nvim
+    "$DOTFILES/install/stow-modules.sh" $STOW_FLAGS nvim
   fi
 fi
 

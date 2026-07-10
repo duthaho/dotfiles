@@ -87,6 +87,16 @@ Personal info lives in three gitignored sidecars, seeded by `install/seed-identi
 
 The repo itself has no personal info. Fork freely; bootstrap will prompt you for yours.
 
+## Conflict handling
+
+When a link's target spot is already occupied by a real file — or, on Windows, by a symlink this repo doesn't own — stowing never destroys anything:
+
+- **Interactive runs** prompt per conflict: `[s]kip` (keep your file, link the rest of the module), `[b]ackup` (move it aside, then link), or `[A]ll` (backup this and every remaining conflict).
+- **Non-interactive runs** (`--non-interactive` / `-NonInteractive`, or piped stdin) auto-backup every conflict, so CI and scripted installs always converge to repo state.
+- Backups land in `~/.dotfiles-backup/<timestamp>/`, preserving paths relative to `$HOME`. Each run gets its own directory — nothing is ever overwritten. Restore by moving a file back.
+- Repo content is never modified by stowing, and foreign symlinks are never silently replaced (backing one up moves the link itself; its destination is untouched).
+- `dot stow --dry-run <module>` previews planned resolutions without touching anything.
+
 ## Notes
 
 - **Doctor output:** required rows must pass; optional rows (`nvim`, CLI cluster, OS defaults) are informational and never fail the run.

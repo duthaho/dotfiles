@@ -40,6 +40,7 @@ $WinDefaults = @('git','pwsh','wt')
 & "$DotfilesPath\install\symlink-windows.ps1" `
     -Modules $WinDefaults `
     -DryRun:$DryRun `
+    -NonInteractive:$NonInteractive `
     -DotfilesPath $DotfilesPath
 
 # 4. Optional: nvim
@@ -53,7 +54,8 @@ if (-not $DryRun) {
         winget install --id Neovim.Neovim --silent `
             --accept-source-agreements --accept-package-agreements
         & "$DotfilesPath\install\symlink-windows.ps1" `
-            -Modules @('nvim') -DotfilesPath $DotfilesPath
+            -Modules @('nvim') -NonInteractive:$NonInteractive `
+            -DotfilesPath $DotfilesPath
     }
 }
 

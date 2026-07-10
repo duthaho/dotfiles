@@ -32,6 +32,12 @@ jobs:
       - name: Run doctor
         run: ./doctor.sh
 
+      - name: Install bats
+        run: sudo apt-get install -y bats
+
+      - name: Run stow conflict-flow tests
+        run: bats tests/stow-conflicts.bats
+
   macos:
     name: bootstrap on macos-latest
     runs-on: macos-latest
@@ -44,6 +50,12 @@ jobs:
 
       - name: Run doctor
         run: ./doctor.sh
+
+      - name: Install bats
+        run: brew install bats-core
+
+      - name: Run stow conflict-flow tests
+        run: bats tests/stow-conflicts.bats
 
   windows:
     name: bootstrap on windows-latest
@@ -68,3 +80,8 @@ jobs:
 
       - name: Run doctor
         run: .\doctor.ps1
+
+      - name: Run symlink conflict-flow tests (Pester)
+        run: |
+          Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck
+          Invoke-Pester -Path tests/SymlinkWindows.Tests.ps1 -CI
