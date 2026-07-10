@@ -16,6 +16,3 @@ desktop.ini
 
 # Stow's adoption backup files
 *.stow-local-ignore
-
-# Local dev scratch (specs, plans, research notes)
-out/
