@@ -5,10 +5,20 @@
 
 .DESCRIPTION
     Walks the file tree inside each named module folder and creates
-    symbolic links under $HOME pointing back into the dotfiles repo.
+    symbolic links under the target (default $HOME) pointing back into
+    the dotfiles repo.
 
-    Idempotent: existing correct links are skipped; existing real files
-    cause a warning and are skipped (never overwritten).
+    Idempotent: existing correct links are skipped; links that point
+    elsewhere into the repo are re-pointed silently (they're ours).
+
+    Conflict flow — a real file, or a symlink NOT owned by this repo,
+    sitting where a link must go:
+      interactive:      prompt per conflict: [s]kip / [b]ackup / [A]ll
+      -NonInteractive:  auto-backup every conflict
+    Backups are moved to <target>/.dotfiles-backup/<yyyyMMdd-HHmmss>/<relative-path>.
+    The directory is created only when a backup actually happens and is
+    unique per run. Foreign symlinks are backed up (the link itself moves,
+    its destination is never touched) — never silently replaced.
 
 .PARAMETER Modules
     Array of module folder names (e.g. 'pwsh','wt','git').
@@ -18,17 +28,18 @@
     point into the dotfiles repo.
 
 .PARAMETER DryRun
-    Print actions without performing them.
+    Print actions (including planned conflict resolutions) without
+    performing them.
+
+.PARAMETER NonInteractive
+    Resolve every conflict by backing up the existing file (CI /
+    unattended installs).
 
 .PARAMETER DotfilesPath
     Override the repo path (defaults to parent of this script).
 
-.NOTES
-    When a real (non-symlink) file blocks a link, it is automatically moved
-    to <target>.bak before the symlink is created. Re-runs that produce a
-    new .bak overwrite any previous one — so .bak is always the state from
-    the most recent conflict. To keep older backups, rename them yourself
-    between runs (e.g., .bak.YYYYMMDD).
+.PARAMETER TargetPath
+    Override the link destination root (defaults to $HOME). Mostly for tests.
 #>
 
 [CmdletBinding()]
@@ -36,7 +47,9 @@ param(
     [Parameter(Mandatory=$true)][string[]]$Modules,
     [switch]$Remove,
     [switch]$DryRun,
-    [string]$DotfilesPath
+    [switch]$NonInteractive,
+    [string]$DotfilesPath,
+    [string]$TargetPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,8 +57,11 @@ $ErrorActionPreference = 'Stop'
 if (-not $DotfilesPath) {
     $DotfilesPath = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 }
+if (-not $TargetPath) {
+    $TargetPath = $HOME
+}
 
-# --- Preflight: symlink creation requires Developer Mode OR admin ---
+# --- Preflight: symlink creation requires Developer Mode OR admin (Windows only) ---
 function Test-CanCreateSymlinks {
     $devMode = Get-ItemProperty `
         -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
@@ -59,7 +75,7 @@ function Test-CanCreateSymlinks {
     return $admin
 }
 
-if (-not $Remove -and -not (Test-CanCreateSymlinks)) {
+if ($IsWindows -and -not $Remove -and -not (Test-CanCreateSymlinks)) {
     Write-Error @'
 Symlink creation requires either:
   (a) Windows Developer Mode enabled
@@ -69,26 +85,92 @@ Symlink creation requires either:
     exit 1
 }
 
+# --- Backup machinery: lazy, unique per run ---
+$script:BackupRoot = Join-Path $TargetPath '.dotfiles-backup'
+$script:BackupDir  = $null
+$script:BackupAll  = $false
+
+function Get-BackupDir {
+    if (-not $script:BackupDir) {
+        $base = Join-Path $script:BackupRoot (Get-Date -Format 'yyyyMMdd-HHmmss')
+        $dir = $base
+        $n = 2
+        while (Test-Path $dir) {
+            $dir = "$base-$n"
+            $n++
+        }
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        $script:BackupDir = $dir
+    }
+    return $script:BackupDir
+}
+
+function Backup-One {
+    param([string]$Target, [string]$Relative)
+    $dest = Join-Path (Get-BackupDir) $Relative
+    $parent = Split-Path -Parent $dest
+    if (-not (Test-Path $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    Move-Item -Path $Target -Destination $dest -Force
+    Write-Host "    backed up: $Target -> $dest"
+}
+
+# Decide what to do with a conflict. Returns 's' (skip) or 'b' (backup).
+function Resolve-Conflict {
+    param([string]$Target, [string]$Kind)
+
+    if ($NonInteractive -or $script:BackupAll) { return 'b' }
+    while ($true) {
+        $ans = Read-Host "    conflict: $Target exists ($Kind). [s]kip / [b]ackup then link / [A] backup all"
+        switch -CaseSensitive ($ans) {
+            { $_ -in 's', 'S' } { return 's' }
+            { $_ -in 'b', 'B' } { return 'b' }
+            'A'                 { $script:BackupAll = $true; return 'b' }
+            default             { Write-Host '    please answer s, b, or A' }
+        }
+    }
+}
+
 # --- Worker functions ---
 function Invoke-LinkOne {
-    param([string]$Source, [string]$Target)
+    param([string]$Source, [string]$Target, [string]$Relative)
+
+    $conflictKind = $null
 
     if (Test-Path $Target) {
         $item = Get-Item $Target -Force
-        if ($item.LinkType -eq 'SymbolicLink' -and $item.Target -eq $Source) {
-            Write-Host "  = $Target (already linked)"
-            return
-        }
         if ($item.LinkType -eq 'SymbolicLink') {
-            Write-Host "  ~ $Target → $($item.Target) (replacing)"
-            if (-not $DryRun) { Remove-Item $Target -Force }
-        } else {
-            $backup = "$Target.bak"
-            Write-Host "  ~ $Target (real file → $backup, then linking)"
-            if (-not $DryRun) {
-                if (Test-Path $backup) { Remove-Item $backup -Force }
-                Move-Item -Path $Target -Destination $backup -Force
+            if ($item.Target -eq $Source) {
+                Write-Host "  = $Target (already linked)"
+                return
             }
+            if ($item.Target -and $item.Target.StartsWith($DotfilesPath, [StringComparison]::OrdinalIgnoreCase)) {
+                # Ours, but pointing at a stale repo path — safe to re-point.
+                Write-Host "  ~ $Target → $($item.Target) (ours, re-pointing)"
+                if (-not $DryRun) { Remove-Item $Target -Force }
+            } else {
+                $conflictKind = "symlink → $($item.Target)"
+            }
+        } else {
+            $conflictKind = 'real file'
+        }
+
+        if ($conflictKind) {
+            if ($DryRun) {
+                if ($NonInteractive) {
+                    Write-Host "  ! $Target ($conflictKind) — would back up to $script:BackupRoot\<run>\ and link"
+                } else {
+                    Write-Host "  ! $Target ($conflictKind) — would prompt [s]kip / [b]ackup / [A]ll"
+                }
+                return
+            }
+            $action = Resolve-Conflict -Target $Target -Kind $conflictKind
+            if ($action -eq 's') {
+                Write-Host "  s $Target (kept existing, skipped)"
+                return
+            }
+            Backup-One -Target $Target -Relative $Relative
         }
     }
 
@@ -133,12 +215,12 @@ foreach ($mod in $Modules) {
     Write-Host "==> $mod"
     Get-ChildItem -Path $modPath -Recurse -File | ForEach-Object {
         $relative = $_.FullName.Substring($modPath.Length + 1)
-        $target   = Join-Path $HOME $relative
+        $target   = Join-Path $TargetPath $relative
 
         if ($Remove) {
             Invoke-UnlinkOne -Source $_.FullName -Target $target
         } else {
-            Invoke-LinkOne   -Source $_.FullName -Target $target
+            Invoke-LinkOne   -Source $_.FullName -Target $target -Relative $relative
         }
     }
 }
