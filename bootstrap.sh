@@ -128,6 +128,40 @@ if [[ -z "$DRY_RUN" ]]; then
   fi
 fi
 
+# 6b. kitty terminal — default on macOS/Linux (no native Windows/WSL GUI build).
+# Install + font are best-effort (warn, never abort). The config dir is
+# pre-created so stow links only kitty.conf, keeping kitty's runtime files
+# (current-theme.conf, written by `kitty +kitten themes`) out of the repo.
+if [[ -n "$DRY_RUN" ]]; then
+  echo "==> kitty: DRY RUN — would install kitty + Nerd Font and stow (macOS/Linux)"
+else
+  echo "==> kitty terminal"
+  case "$OS" in
+    macos)
+      command -v kitty >/dev/null 2>&1 || brew install --cask kitty \
+        || echo "WARN: kitty install failed; install it manually" >&2
+      "$DOTFILES/install/fonts.sh" macos || true
+      mkdir -p "$HOME/.config/kitty"
+      "$DOTFILES/install/stow-modules.sh" $STOW_FLAGS kitty
+      ;;
+    linux)
+      if ! command -v kitty >/dev/null 2>&1; then
+        if command -v apt-get >/dev/null 2>&1; then
+          sudo apt-get install -y kitty || echo "WARN: apt kitty install failed" >&2
+        elif command -v dnf >/dev/null 2>&1; then
+          sudo dnf install -y kitty || echo "WARN: dnf kitty install failed" >&2
+        fi
+      fi
+      "$DOTFILES/install/fonts.sh" linux || true
+      mkdir -p "$HOME/.config/kitty"
+      "$DOTFILES/install/stow-modules.sh" $STOW_FLAGS kitty
+      ;;
+    wsl)
+      echo "    kitty: skipped on WSL (no reliable GUI path)"
+      ;;
+  esac
+fi
+
 # 7. Switch default shell to zsh (only if not already)
 if [[ -z "$DRY_RUN" && -z "$NON_INTERACTIVE" && "$SHELL" != *zsh ]]; then
   ZSH_PATH="$(command -v zsh)"

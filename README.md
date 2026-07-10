@@ -48,6 +48,7 @@ dot help                 show usage
 | `pwsh`     | PowerShell 7 profile + oh-my-posh  | Windows         | default |
 | `wt`       | Windows Terminal settings          | Windows         | default |
 | `nvim`     | Neovim (lazy.nvim + LSP)           | all             | opt-in  |
+| `kitty`    | kitty terminal emulator config     | macOS/Linux     | default |
 
 **CLI cluster** — installed via the package manifest, wired into the shell:
 
@@ -99,7 +100,8 @@ When a link's target spot is already occupied by a real file — or, on Windows,
 
 ## Notes
 
-- **Doctor output:** required rows must pass; optional rows (`nvim`, CLI cluster, OS defaults) are informational and never fail the run.
+- **Doctor output:** required rows must pass; optional rows (`nvim`, `kitty`, CLI cluster, OS defaults) are informational and never fail the run.
+- **kitty:** installed and stowed by default on macOS/Linux. It has no native Windows build (and WSL GUI is out of scope), so it's skipped there. The Nerd Font it uses is auto-installed; pick a theme with `kitty +kitten themes`.
 - **Graphviz `dot` collision:** Graphviz installs a `dot` binary that this entrypoint shadows on PATH. If you use Graphviz, rename `bin/dot` (and the symlink it creates) or invoke Graphviz's `dot` via its full path.
 - **CI:** `bootstrap.sh --non-interactive` / `bootstrap.ps1 -NonInteractive` run end-to-end on `ubuntu-latest`, `macos-latest`, and `windows-latest` per PR and weekly via cron — catches upstream package drift early.
 
