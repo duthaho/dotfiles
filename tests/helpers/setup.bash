@@ -20,6 +20,10 @@ make_sandbox() {
   echo "repo-zshrc"     > "$DOTFILES/zsh/.zshrc"
   echo "repo-deepconf"  > "$DOTFILES/zsh/.config/deep/file.conf"
 
+  # kitty fixture — a single config under .config/kitty, mirrors the real module.
+  mkdir -p "$DOTFILES/kitty/.config/kitty"
+  echo "repo-kittyconf" > "$DOTFILES/kitty/.config/kitty/kitty.conf"
+
   git -C "$DOTFILES" init -q
   git -C "$DOTFILES" -c user.name=t -c user.email=t@t add -A
   git -C "$DOTFILES" -c user.name=t -c user.email=t@t commit -qm fixture

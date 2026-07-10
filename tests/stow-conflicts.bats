@@ -59,6 +59,31 @@ parse() { # feeds stdin lines (as args) through parse_conflict_paths
   [ "$(cat "$HOME/.zshrc")" = "repo-zshrc" ]
 }
 
+# --- kitty module: pre-created config dir avoids stow tree-folding ---
+# Documents the requirement bootstrap relies on: kitty writes current-theme.conf
+# into ~/.config/kitty at runtime; if that dir were a folded symlink into the
+# repo, the write would dirty git. Pre-creating it keeps only kitty.conf linked.
+
+@test "kitty: pre-created ~/.config/kitty stays a real dir; only kitty.conf is linked" {
+  mkdir -p "$HOME/.config/kitty"
+
+  run "$SUT" kitty
+  [ "$status" -eq 0 ]
+
+  # the config dir must remain a real directory, not a symlink
+  [ -d "$HOME/.config/kitty" ]
+  [ ! -L "$HOME/.config/kitty" ]
+  # kitty.conf is a file-level symlink resolving into the repo
+  [ -L "$HOME/.config/kitty/kitty.conf" ]
+  [ "$(cat "$HOME/.config/kitty/kitty.conf")" = "repo-kittyconf" ]
+
+  # a runtime write (as `kitty +kitten themes` would do) must NOT touch the repo
+  echo "include some-theme" > "$HOME/.config/kitty/current-theme.conf"
+  run git -C "$DOTFILES" status --porcelain
+  [ "$output" = "" ]
+  [ ! -e "$DOTFILES/kitty/.config/kitty/current-theme.conf" ]
+}
+
 # --- non-interactive conflict flow (spec criteria 1–3) ---
 
 @test "non-interactive: conflicting real file is backed up, then linked" {
