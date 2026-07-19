@@ -59,6 +59,11 @@ if (-not $DryRun) {
     }
 }
 
+# 4b. Enable the fork-safety pre-commit hook (repo-local). Best-effort.
+if (-not $DryRun) {
+    & git -C $DotfilesPath config core.hooksPath .githooks 2>$null
+}
+
 # 5. Install PowerShell modules used by profile (PSReadLine ships with pwsh)
 if (-not $DryRun) {
     foreach ($mod in @('posh-git', 'Terminal-Icons')) {

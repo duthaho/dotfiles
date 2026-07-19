@@ -22,6 +22,9 @@ Commands:
   stow <module>                  Symlink a specific module (e.g., nvim)
   defaults <apply|revert [snap]> Apply or revert OS defaults (Windows)
   update                         git pull --ff-only + re-stow default modules
+  uninstall [-DryRun]            Remove all repo-owned symlinks (teardown)
+  fork-check [-Staged]           Scan for leaked identity/secrets
+  fork-check --install-hook      Enable the pre-commit fork-safety hook
   help                           Show this message
 "@
 }
@@ -53,6 +56,19 @@ switch ($Command) {
         } finally {
             Pop-Location
         }
+    }
+    'uninstall' {
+        & "$DotRepo\install\uninstall-windows.ps1" @Rest -DotfilesPath $DotRepo
+        exit $LASTEXITCODE
+    }
+    'fork-check' {
+        if ($Rest -contains '--install-hook' -or $Rest -contains '-InstallHook') {
+            git -C $DotRepo config core.hooksPath .githooks
+            Write-Host '==> pre-commit fork-safety hook enabled (core.hooksPath=.githooks)'
+            exit 0
+        }
+        & "$DotRepo\install\fork-safety-scan.ps1" @Rest -DotfilesPath $DotRepo
+        exit $LASTEXITCODE
     }
     { $_ -in 'help', '--help', '-h' } { Show-Usage }
     default {

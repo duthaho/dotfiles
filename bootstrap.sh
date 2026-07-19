@@ -47,7 +47,7 @@ export NON_INTERACTIVE
 
 # 0. Ensure helper scripts are executable. The +x bit doesn't always survive
 # transfers from Windows filesystems (git on Windows, scp/rsync, zip archives).
-chmod +x "$DOTFILES/doctor.sh" "$DOTFILES/install/"*.sh "$DOTFILES/install/defaults/"*.sh "$DOTFILES/bin/dot" 2>/dev/null || true
+chmod +x "$DOTFILES/doctor.sh" "$DOTFILES/install/"*.sh "$DOTFILES/install/defaults/"*.sh "$DOTFILES/bin/dot" "$DOTFILES/.githooks/"* 2>/dev/null || true
 
 # 1. Detect OS
 OS=$("$DOTFILES/install/detect-os.sh")
@@ -78,6 +78,10 @@ STOW_FLAGS="$DRY_RUN"
 if [[ -z "$DRY_RUN" ]]; then
   mkdir -p "$HOME/.local/bin"
   ln -sf "$DOTFILES/bin/dot" "$HOME/.local/bin/dot"
+
+  # Enable the fork-safety pre-commit hook (repo-local; keeps personal info out
+  # of a fork-safe repo). Best-effort: never abort bootstrap if git config fails.
+  git -C "$DOTFILES" config core.hooksPath .githooks 2>/dev/null || true
 fi
 
 # 5. Optional: Oh My Zsh + plugins (separately from package manager)
