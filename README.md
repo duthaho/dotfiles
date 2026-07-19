@@ -31,7 +31,8 @@ dot stow <module>        symlink a specific module (e.g., nvim)
 dot defaults apply       apply opt-in OS defaults
 dot defaults revert <snapshot.json>
                          restore a previous apply
-dot update               git pull --ff-only + re-stow default modules (does NOT reinstall packages)
+dot update               git pull --ff-only + re-stow; flags package-manifest changes, then doctor
+dot plan                 read-only drift report — what a bootstrap/stow would change
 dot uninstall [--dry-run]
                          remove every repo-owned symlink (clean teardown)
 dot fork-check [--staged]
@@ -116,6 +117,16 @@ When a link's target spot is already occupied by a real file — or, on Windows,
 
 ## Notes
 
+- **Plan:** `dot plan` is a read-only drift report answering "if I bootstrapped
+  now, what would change?" — per-module symlink status (linked / would-link /
+  would-back-up-and-link), package-manifest gaps (`brew bundle check` / `dpkg` /
+  `rpm` / winget), and a macOS-defaults spot-check. It changes nothing and exits
+  `2` when drift exists (`0` when in sync), so it's usable in scripts.
+- **Update:** `dot update` pulls, re-stows, and — because re-stowing does *not*
+  install packages — detects when the pull changed anything under
+  `install/packages/` and offers to run `dot bootstrap` (just prints a notice in
+  non-interactive/CI runs). It closes with `dot doctor`; skip that with
+  `--no-doctor`.
 - **Uninstall:** `dot uninstall` removes only symlinks that resolve into this
   repo (real files and foreign symlinks are never touched, and a stray real file
   never aborts the run — unlike `stow -D`). It also removes the `dot` shim.

@@ -22,6 +22,7 @@ Commands:
   stow <module>                  Symlink a specific module (e.g., nvim)
   defaults <apply|revert [snap]> Apply or revert OS defaults (Windows)
   update                         git pull --ff-only + re-stow default modules
+  plan                           Read-only drift report (what bootstrap would change)
   uninstall [-DryRun]            Remove all repo-owned symlinks (teardown)
   fork-check [-Staged]           Scan for leaked identity/secrets
   fork-check --install-hook      Enable the pre-commit fork-safety hook
@@ -47,15 +48,12 @@ switch ($Command) {
         exit $LASTEXITCODE
     }
     'update' {
-        Push-Location $DotRepo
-        try {
-            git pull --ff-only
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            & "$DotRepo\install\symlink-windows.ps1" -Modules @('git','pwsh','wt') -DotfilesPath $DotRepo
-            exit $LASTEXITCODE
-        } finally {
-            Pop-Location
-        }
+        & "$DotRepo\install\update-windows.ps1" @Rest -DotfilesPath $DotRepo
+        exit $LASTEXITCODE
+    }
+    'plan' {
+        & "$DotRepo\install\plan-windows.ps1" @Rest -DotfilesPath $DotRepo
+        exit $LASTEXITCODE
     }
     'uninstall' {
         & "$DotRepo\install\uninstall-windows.ps1" @Rest -DotfilesPath $DotRepo
