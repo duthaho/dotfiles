@@ -51,8 +51,10 @@ try {
     # legitimately appears in a fork-safe repo. Name is deliberately NOT matched
     # (a git user.name is often a handle that shows up in the repo's own URLs and
     # LICENSE copyright — public attribution, not a leak). Empty on CI / fresh clone.
+    # FORK_SAFETY_SIDECAR overrides the sidecar path (test isolation); default is
+    # the real ~/.gitconfig.local.
     $identityLiterals = @()
-    $localGc = Join-Path $HOME '.gitconfig.local'
+    $localGc = if ($env:FORK_SAFETY_SIDECAR) { $env:FORK_SAFETY_SIDECAR } else { Join-Path $HOME '.gitconfig.local' }
     if (Test-Path $localGc) {
         $e = (& git config --file $localGc --get user.email) 2>$null
         if ($e) { $identityLiterals += [regex]::Escape($e) }

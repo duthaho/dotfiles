@@ -67,7 +67,9 @@ ALLOW='example\.(com|org|net|invalid)|@example|\.invalid|noreply|you@|user@host|
 # LICENSE copyright, which is public attribution, not a leak.) Empty when the
 # sidecar is absent (CI, fresh clone); the generic patterns still run.
 IDENTITY_LITERALS=()
-LOCAL_GC="$HOME/.gitconfig.local"
+# FORK_SAFETY_SIDECAR overrides the sidecar path (test isolation); default is the
+# real ~/.gitconfig.local.
+LOCAL_GC="${FORK_SAFETY_SIDECAR:-$HOME/.gitconfig.local}"
 if [[ -f "$LOCAL_GC" ]]; then
   gc_email="$(git config --file "$LOCAL_GC" --get user.email 2>/dev/null || true)"
   [[ -n "$gc_email" ]] && IDENTITY_LITERALS+=("$gc_email")

@@ -30,9 +30,15 @@ Describe 'fork-safety-scan.ps1' {
             git config user.name  t
             git config user.email t@t
         } finally { Pop-Location }
+
+        # Isolate the identity sidecar from the runner's real ~/.gitconfig.local
+        # (on CI, bootstrap seeds it with ci@example.invalid, which would collide
+        # with placeholder test data). Point at a nonexistent path by default.
+        $env:FORK_SAFETY_SIDECAR = Join-Path $Sandbox 'no-such.gitconfig.local'
     }
 
     AfterEach {
+        Remove-Item Env:\FORK_SAFETY_SIDECAR -ErrorAction SilentlyContinue
         if ($Sandbox -and (Test-Path $Sandbox)) { Remove-Item $Sandbox -Recurse -Force }
     }
 
@@ -47,8 +53,18 @@ Describe 'fork-safety-scan.ps1' {
     }
 
     It 'allows example.* / *.invalid placeholders' {
-        Set-Content (Join-Path $Repo 'notes.md') "ci@example.invalid`nyou@example.com"
+        Set-Content (Join-Path $Repo 'notes.md') "you@example.com`nsomeone@example.org`nname@host"
         Invoke-Scan | Should -Be 0
+    }
+
+    It 'flags the sidecar identity email even if its domain looks benign' {
+        # me@example.com is an allowlisted placeholder generically — but as YOUR
+        # sidecar identity it must still be caught (proves the identity path).
+        $sidecar = Join-Path $Sandbox 'id.gitconfig.local'
+        Set-Content $sidecar "[user]`n`temail = me@example.com"
+        $env:FORK_SAFETY_SIDECAR = $sidecar
+        Set-Content (Join-Path $Repo 'CONTRIBUTORS.md') 'signed-off-by: me@example.com'
+        Invoke-Scan | Should -Be 1
     }
 
     It 'flags a GitHub token' {
