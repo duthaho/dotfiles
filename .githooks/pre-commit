@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fork-safety pre-commit hook. Enabled by `dot fork-check --install-hook`
+# (bootstrap sets core.hooksPath=.githooks). Git-for-Windows runs it via its
+# bundled bash, so one file covers every platform.
+#
+# Bypass a false positive with `git commit --no-verify`.
+set -euo pipefail
+repo="$(git rev-parse --show-toplevel)"
+exec "$repo/install/fork-safety-scan.sh" --staged

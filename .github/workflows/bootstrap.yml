@@ -26,6 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fork-safety scan
+        run: ./install/fork-safety-scan.sh
+
       - name: Run bootstrap (non-interactive)
         run: ./bootstrap.sh --non-interactive
 
@@ -35,8 +38,8 @@ jobs:
       - name: Install bats
         run: sudo apt-get install -y bats
 
-      - name: Run stow conflict-flow tests
-        run: bats tests/stow-conflicts.bats
+      - name: Run bats test suites
+        run: bats tests/
 
   macos:
     name: bootstrap on macos-latest
@@ -44,6 +47,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fork-safety scan
+        run: ./install/fork-safety-scan.sh
 
       - name: Run bootstrap (non-interactive)
         run: ./bootstrap.sh --non-interactive
@@ -54,8 +60,8 @@ jobs:
       - name: Install bats
         run: brew install bats-core
 
-      - name: Run stow conflict-flow tests
-        run: bats tests/stow-conflicts.bats
+      - name: Run bats test suites
+        run: bats tests/
 
   windows:
     name: bootstrap on windows-latest
@@ -66,6 +72,9 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fork-safety scan
+        run: .\install\fork-safety-scan.ps1
 
       - name: Run bootstrap (non-interactive)
         run: .\bootstrap.ps1 -NonInteractive
@@ -81,7 +90,7 @@ jobs:
       - name: Run doctor
         run: .\doctor.ps1
 
-      - name: Run symlink conflict-flow tests (Pester)
+      - name: Run Pester test suites
         run: |
           Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck
-          Invoke-Pester -Path tests/SymlinkWindows.Tests.ps1 -CI
+          Invoke-Pester -Path tests -CI

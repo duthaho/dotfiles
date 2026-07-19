@@ -22,6 +22,9 @@ Commands:
   stow <module>                  Symlink a specific module (e.g., nvim)
   defaults <apply|revert [snap]> Apply or revert OS defaults (macOS)
   update                         git pull --ff-only + re-stow default modules
+  uninstall [--dry-run]          Remove all repo-owned symlinks (teardown)
+  fork-check [--staged]          Scan for leaked identity/secrets
+  fork-check --install-hook      Enable the pre-commit fork-safety hook
   help                           Show this message
 EOF
 }
@@ -41,6 +44,16 @@ case "${1:-help}" in
     cd "$DOT_REPO"
     git pull --ff-only
     exec "$DOT_REPO/install/stow-modules.sh"
+    ;;
+  uninstall) shift; exec "$DOT_REPO/install/uninstall.sh" "$@" ;;
+  fork-check)
+    shift
+    if [[ "${1:-}" == "--install-hook" ]]; then
+      git -C "$DOT_REPO" config core.hooksPath .githooks
+      echo "==> pre-commit fork-safety hook enabled (core.hooksPath=.githooks)"
+      exit 0
+    fi
+    exec "$DOT_REPO/install/fork-safety-scan.sh" "$@"
     ;;
   help|--help|-h) usage ;;
   *)
