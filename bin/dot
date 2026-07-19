@@ -22,6 +22,7 @@ Commands:
   stow <module>                  Symlink a specific module (e.g., nvim)
   defaults <apply|revert [snap]> Apply or revert OS defaults (macOS)
   update                         git pull --ff-only + re-stow default modules
+  plan                           Read-only drift report (what bootstrap would change)
   uninstall [--dry-run]          Remove all repo-owned symlinks (teardown)
   fork-check [--staged]          Scan for leaked identity/secrets
   fork-check --install-hook      Enable the pre-commit fork-safety hook
@@ -40,11 +41,8 @@ case "${1:-help}" in
       *) echo "ERROR: dot defaults: macOS only on this OS ($(uname -s))" >&2; exit 1 ;;
     esac
     ;;
-  update)
-    cd "$DOT_REPO"
-    git pull --ff-only
-    exec "$DOT_REPO/install/stow-modules.sh"
-    ;;
+  update)    shift; exec "$DOT_REPO/install/update.sh" "$@" ;;
+  plan)      shift; exec "$DOT_REPO/install/plan.sh" "$@" ;;
   uninstall) shift; exec "$DOT_REPO/install/uninstall.sh" "$@" ;;
   fork-check)
     shift
